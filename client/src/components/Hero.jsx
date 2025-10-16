@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Play, Sparkles, Wand2, ImageIcon } from "lucide-react";
+import { ArrowRight, Play, Sparkles, Wand2, ImageIcon, Users } from "lucide-react";
 
 function Hero() {
   const navigate = useNavigate();
@@ -57,28 +57,61 @@ function Hero() {
           </button>
         </div>
 
+        {/* Social Proof - User Group */}
+        <div className="flex flex-col items-center gap-3 pt-6">
+          {/* Avatar Stack */}
+          <div className="flex -space-x-3">
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-semibold shadow-md">
+              JS
+            </div>
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-md">
+              AK
+            </div>
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-pink-400 to-pink-600 flex items-center justify-center text-white text-xs font-semibold shadow-md">
+              SM
+            </div>
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white text-xs font-semibold shadow-md">
+              RJ
+            </div>
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-md">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+          </div>
+
+          {/* Trust Text */}
+          <p className="text-sm sm:text-base text-gray-600 font-medium">
+            Trusted by <span className="text-primary font-bold">10,000+</span> content creators worldwide
+          </p>
+        </div>
+
         {/* Feature Pills */}
         <div className="flex flex-wrap items-center justify-center gap-3 pt-8">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-xs sm:text-sm text-gray-700">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-xs sm:text-sm text-gray-700 hover:border-primary/50 hover:shadow-md transition-all">
             <Wand2 className="w-4 h-4 text-primary" />
             <span>AI Writing</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-xs sm:text-sm text-gray-700">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-xs sm:text-sm text-gray-700 hover:border-primary/50 hover:shadow-md transition-all">
             <ImageIcon className="w-4 h-4 text-primary" />
             <span>Image Generation</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-xs sm:text-sm text-gray-700">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-xs sm:text-sm text-gray-700 hover:border-primary/50 hover:shadow-md transition-all">
             <Sparkles className="w-4 h-4 text-primary" />
             <span>Background Removal</span>
           </div>
         </div>
       </div>
 
-      {/* Trust Indicators (Optional) */}
-      <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-8 text-xs sm:text-sm text-gray-500">
-        <span>✓ No credit card required</span>
-        <span className="hidden sm:inline">✓ Free trial available</span>
-        <span className="hidden md:inline">✓ Cancel anytime</span>
+      {/* Trust Indicators */}
+      <div className="mt-12 flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-xs sm:text-sm text-gray-500">
+        <span className="flex items-center gap-1">
+          <span className="text-green-500">✓</span> No credit card required
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="text-green-500">✓</span> Free trial available
+        </span>
+        <span className="hidden md:flex items-center gap-1">
+          <span className="text-green-500">✓</span> Cancel anytime
+        </span>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import AiTools from '../components/AiTools'
 import Testimonial from '../components/Testimonial'
+import Footer from '../components/Footer'
 
 function Home() {
   return (
@@ -11,6 +12,7 @@ function Home() {
       <Hero />
       <AiTools />
       <Testimonial />
+      <Footer />
     </>
   )
 }

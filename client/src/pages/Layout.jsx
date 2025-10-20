@@ -1,14 +1,44 @@
 import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
-import { useNavigate, useLocation } from "react-router-dom";
-import { X, Menu, Bell, User, ChevronDown } from "lucide-react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { X, Menu, Bell, User, ChevronDown, LogOut, Settings, UserCircle } from "lucide-react";
+import { useAuthStore } from "../store/authStore";
 import Sidebar from "../components/Sidebar";
 
 function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuthStore();
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  // Handle logout
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    const names = user.name.split(" ");
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return user.name[0].toUpperCase();
+  };
+
+  // Get page title from route
+  const getPageTitle = () => {
+    if (location.pathname === "/ai") return "Dashboard";
+    
+    return location.pathname
+      .split("/")
+      .pop()
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -79,14 +109,7 @@ function Layout() {
             {/* Page Title - Hidden on mobile */}
             <div className="hidden sm:block">
               <h1 className="text-lg font-semibold text-gray-800">
-                {location.pathname === "/ai"
-                  ? "Dashboard"
-                  : location.pathname
-                      .split("/")
-                      .pop()
-                      .split("-")
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(" ")}
+                {getPageTitle()}
               </h1>
             </div>
           </div>
@@ -106,43 +129,99 @@ function Layout() {
             <div className="relative">
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="flex items-center gap-2 sm:gap-3 p-1.5 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-md">
-                  U
+                {/* User Avatar */}
+                {user?.profilePicture ? (
+                  <img
+                    src={user.profilePicture}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-primary/20"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-md">
+                    {getUserInitials()}
+                  </div>
+                )}
+
+                {/* User Info - Hidden on small screens */}
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium text-gray-700 leading-tight">
+                    {user?.name || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 leading-tight">
+                    {user?.email || "user@example.com"}
+                  </p>
                 </div>
+
                 <ChevronDown className="w-4 h-4 text-gray-600 hidden sm:block" />
               </button>
 
               {/* Dropdown Menu */}
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <a
-                    href="#"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Profile
-                  </a>
-                  <a
-                    href="#"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Settings
-                  </a>
-                  <a
-                    href="#"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Billing
-                  </a>
-                  <hr className="my-2 border-gray-200" />
-                  <a
-                    href="#"
-                    className="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    Logout
-                  </a>
-                </div>
+                <>
+                  {/* Overlay for closing dropdown */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProfileOpen(false)}
+                  />
+
+                  {/* Dropdown Content */}
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    {/* User Info in Dropdown */}
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {user?.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {user?.email || "user@example.com"}
+                      </p>
+                      {user?.provider && (
+                        <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-full">
+                          {user.provider === "google" ? "Google Account" : "Local Account"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          // Navigate to profile page when you create it
+                          // navigate("/ai/profile");
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <UserCircle className="w-4 h-4" />
+                        <span>My Profile</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setProfileOpen(false);
+                          // Navigate to settings page when you create it
+                          // navigate("/ai/settings");
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
+                      </button>
+                    </div>
+
+                    <hr className="my-1 border-gray-200" />
+
+                    {/* Logout */}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -1,9 +1,15 @@
-import React from 'react'
-import {Routes, Route} from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { useAuthStore } from './store/authStore';
+
 import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import AuthCallback from './pages/AuthCallback';
 import Layout from './pages/Layout';
-import WriteArticle from './pages/WriteArticle';
 import Dashboard from './pages/Dashboard';
+import WriteArticle from './pages/WriteArticle';
 import BlogTitle from './pages/BlogTitle';
 import GenerateImages from './pages/GenerateImages';
 import RemoveBackground from './pages/RemoveBackground';
@@ -11,24 +17,76 @@ import RemoveObject from './pages/RemoveObject';
 import ReviewResume from './pages/ReviewResume';
 import Community from './pages/Community';
 
+import ProtectedRoute from './components/ProtectedRoute';
+
 function App() {
+  const { loadUser } = useAuthStore();
+
+  // Load user on app mount
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
+
   return (
-    <div>
+    <>
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
+      {/* Routes */}
       <Routes>
-        <Route path='/' element={<Home />} />
-        <Route path='/ai' element={<Layout />}>
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Dashboard />} />
-          <Route path='write-article' element={<WriteArticle />} />
-          <Route path='blog-title' element={<BlogTitle />} />
-          <Route path='generate-images' element={<GenerateImages />} />
-          <Route path='remove-background' element={<RemoveBackground />} />
-          <Route path='remove-object' element={<RemoveObject />} />
-          <Route path='review-resume' element={<ReviewResume />} />
-          <Route path='community' element={<Community />} />
+          <Route path="write-article" element={<WriteArticle />} />
+          <Route path="blog-title" element={<BlogTitle />} />
+          <Route path="generate-images" element={<GenerateImages />} />
+          <Route path="remove-background" element={<RemoveBackground />} />
+          <Route path="remove-object" element={<RemoveObject />} />
+          <Route path="review-resume" element={<ReviewResume />} />
+          <Route path="community" element={<Community />} />
         </Route>
+
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
-  )
+    </>
+  );
 }
 
-export default App
+export default App;

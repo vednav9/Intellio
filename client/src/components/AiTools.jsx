@@ -1,19 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useAuthStore } from '../store/authStore';
 import { AiTools as toolsData } from '../data/AiTools';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 function AiTools() {
   const navigate = useNavigate();
-  const { user } = useUser();
-  const { openSignIn } = useClerk();
+  const { isAuthenticated, user } = useAuthStore();
 
   const handleToolClick = (path) => {
-    if (user) {
+    if (isAuthenticated) {
       navigate(path);
     } else {
-      openSignIn();
+      navigate('/login');
     }
   };
 
@@ -74,7 +73,7 @@ function AiTools() {
                   className="flex items-center gap-2 font-medium text-sm opacity-0 group-hover:opacity-100 transition-opacity"
                   style={{ color: tool.bg.from }}
                 >
-                  <span>{user ? 'Get Started' : 'Sign in to use'}</span>
+                  <span>{isAuthenticated ? 'Get Started' : 'Sign in to use'}</span>
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </div>
               </div>
@@ -95,13 +94,13 @@ function AiTools() {
       </div>
 
       {/* Bottom CTA */}
-      {!user && (
+      {!isAuthenticated && (
         <div className="text-center mt-12">
           <p className="text-gray-600 mb-4">
             Ready to supercharge your workflow?
           </p>
           <button
-            onClick={openSignIn}
+            onClick={() => navigate('/register')}
             className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-white rounded-full font-medium transition-all hover:shadow-xl hover:shadow-primary/25 hover:scale-105"
           >
             Sign Up Free

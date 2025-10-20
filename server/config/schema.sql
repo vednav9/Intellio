@@ -27,14 +27,14 @@ CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 
 -- AI Creations
-CREATE TABLE creations (
-  id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  prompt TEXT NOT NULL,
-  content TEXT NOT NULL,
-  type TEXT NOT NULL,
-  publish BOOLEAN DEFAULT FALSE,
-  likes TEXT[] DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+CREATE TABLE IF NOT EXISTS creations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    prompt TEXT NOT NULL,
+    output TEXT NOT NULL,
+    tool VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+
+CREATE INDEX IF NOT EXISTS idx_creations_user_id ON creations(user_id)

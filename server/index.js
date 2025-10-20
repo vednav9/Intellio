@@ -6,10 +6,12 @@ import passport from './config/passport.js';
 import session from 'express-session';
 
 // Import database functions
-import { sql, testConnection } from './config/db.js';
+import { sql, testConnection, initializeTables } from './config/db.js';
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,11 +27,11 @@ const corsOptions = {
 
 // Middleware
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
-// Session configuration (for passport)
+// Session configuration
 app.use(
   session({
     secret: process.env.JWT_SECRET,
@@ -37,7 +39,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
@@ -50,12 +52,14 @@ app.use(passport.session());
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'AI SaaS API Server is Live! 🚀',
+    message: 'Intellio Server is Live! 🚀',
     timestamp: new Date().toISOString(),
   });
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/user', userRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -79,11 +83,8 @@ const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   try {
-    // Test database connection
     await testConnection();
-    
-    // Initialize tables
-    // await initializeTables();
+    await initializeTables();
 
     app.listen(PORT, () => {
       console.log(`✅ Server is running on port ${PORT}`);

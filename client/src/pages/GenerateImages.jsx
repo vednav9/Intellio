@@ -9,18 +9,20 @@ import {
   Maximize2,
   RefreshCw,
 } from "lucide-react";
+import axiosInstance from "../api/axios";
+import toast from "react-hot-toast";
+
+const imageStyles = ["Realistic", "Ghibli", "Anime", "3D", "Portrait"];
+
+const imageSizes = [
+  { label: "Square", value: "1:1" },
+  { label: "Portrait", value: "9:16" },
+  { label: "Landscape", value: "16:9" },
+];
+
+const numberOfImagesOptions = [1, 2, 4];
 
 function GenerateImages() {
-  const imageStyles = ["Realistic", "Ghibli", "Anime", "3D", "Portrait"];
-
-  const imageSizes = [
-    { label: "Square", value: "1:1" },
-    { label: "Portrait", value: "9:16" },
-    { label: "Landscape", value: "16:9" },
-  ];
-
-  const numberOfImagesOptions = [1, 2, 4];
-
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("Realistic");
   const [imageSize, setImageSize] = useState("1:1");
@@ -34,7 +36,7 @@ function GenerateImages() {
     e.preventDefault();
 
     if (!prompt.trim()) {
-      alert("Please enter an image prompt");
+      toast.error("Please enter an image prompt");
       return;
     }
 
@@ -42,44 +44,42 @@ function GenerateImages() {
     setGeneratedImages([]);
     setProgress(0);
 
-    // Simulate progress
+    // Simulate progress bar increment
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 90) {
           clearInterval(progressInterval);
           return 90;
         }
-        return prev + 10;
+        return prev + 5;
       });
-    }, 300);
+    }, 200);
 
-    // Simulate API call - Replace with actual API
-    setTimeout(() => {
+    try {
+      const response = await axiosInstance.post("/ai/generate-images", {
+        prompt: prompt.trim(),
+        style: selectedStyle,
+        size: imageSize,
+        count: numberOfImages,
+      });
+
       clearInterval(progressInterval);
       setProgress(100);
 
-      // Mock generated images based on size
-      const aspectRatios = {
-        "1:1": "600x600",
-        "9:16": "600x1067",
-        "16:9": "1067x600",
-      };
-      const size = aspectRatios[imageSize];
-
-      const mockImages = Array.from({ length: numberOfImages }, (_, idx) => ({
-        id: idx + 1,
-        url: `https://via.placeholder.com/${size}/${
-          ["6366f1", "8b5cf6", "ec4899", "3b82f6"][idx % 4]
-        }/ffffff?text=${selectedStyle}+Image+${idx + 1}`,
-        prompt: prompt,
-        style: selectedStyle,
-        size: imageSize,
-      }));
-
-      setGeneratedImages(mockImages);
-      setIsLoading(false);
+      if (response.data.success) {
+        setGeneratedImages(response.data.data.images);
+        toast.success("Images generated successfully!");
+      } else {
+        toast.error("Failed to generate images.");
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
       setProgress(0);
-    }, 3000);
+      toast.error(error.response?.data?.message || "Error generating images.");
+      console.error("GenerateImages API error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDownload = async (imageUrl, index) => {
@@ -93,6 +93,7 @@ function GenerateImages() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
+      toast.error("Download failed");
       console.error("Download failed:", error);
     }
   };
@@ -117,13 +118,10 @@ function GenerateImages() {
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
             <ImageIcon className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            AI Image Generator
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">AI Image Generator</h1>
         </div>
         <p className="text-gray-600">
-          Create stunning images from text descriptions. Choose your style and
-          let AI bring your vision to life.
+          Create stunning images from text descriptions. Choose your style and let AI bring your vision to life.
         </p>
       </div>
 
@@ -146,8 +144,7 @@ function GenerateImages() {
                 disabled={isLoading}
               />
               <p className="text-xs text-gray-500 mt-2">
-                Be specific and descriptive for better results. Include details
-                about colors, mood, and composition.
+                Be specific and descriptive for better results. Include details about colors, mood, and composition.
               </p>
             </div>
 
@@ -289,7 +286,6 @@ function GenerateImages() {
             {/* Gallery Content */}
             <div className="p-6 min-h-[500px] max-h-[700px] overflow-y-auto">
               {isLoading ? (
-                // Loading State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
@@ -300,12 +296,9 @@ function GenerateImages() {
                     {numberOfImages} {numberOfImages === 1 ? "image" : "images"}{" "}
                     in {selectedStyle} style...
                   </p>
-                  <div className="text-2xl font-bold text-purple-600">
-                    {progress}%
-                  </div>
+                  <div className="text-2xl font-bold text-purple-600">{progress}%</div>
                 </div>
               ) : generatedImages.length > 0 ? (
-                // Generated Images Grid
                 <div
                   className={`grid gap-4 ${
                     numberOfImages === 1
@@ -358,7 +351,6 @@ function GenerateImages() {
                   ))}
                 </div>
               ) : (
-                // Empty State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                     <ImageIcon className="w-10 h-10 text-gray-400" />
@@ -367,8 +359,7 @@ function GenerateImages() {
                     No Images Generated Yet
                   </h4>
                   <p className="text-sm text-gray-600 max-w-sm">
-                    Enter a prompt, choose your style, and click "Generate
-                    Images" to create stunning AI art.
+                    Enter a prompt, choose your style, and click "Generate Images" to create stunning AI art.
                   </p>
                 </div>
               )}
@@ -382,13 +373,10 @@ function GenerateImages() {
                 <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-purple-800">
                   <p className="font-medium mb-1">
-                    {generatedImages.length}{" "}
-                    {generatedImages.length === 1 ? "image" : "images"}{" "}
-                    generated successfully!
+                    {generatedImages.length} {generatedImages.length === 1 ? "image" : "images"} generated successfully!
                   </p>
                   <p className="text-xs text-purple-700">
-                    Style: {selectedStyle} • Size: {imageSize} • Hover to
-                    download or view fullscreen
+                    Style: {selectedStyle} • Size: {imageSize} • Hover to download or view fullscreen
                   </p>
                 </div>
               </div>
@@ -420,9 +408,7 @@ function GenerateImages() {
 
             {/* Image Info */}
             <div className="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-sm text-white rounded-lg p-4">
-              <p className="text-sm font-medium mb-1">
-                {selectedImage.prompt}
-              </p>
+              <p className="text-sm font-medium mb-1">{selectedImage.prompt}</p>
               <p className="text-xs text-gray-300">
                 Style: {selectedImage.style} • Size: {selectedImage.size}
               </p>

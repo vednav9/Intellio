@@ -10,21 +10,14 @@ import {
   X,
   Wand2,
 } from "lucide-react";
+import axiosInstance from "../api/axios"; // Axios instance with token interceptors
+import toast from "react-hot-toast";
 
 function WriteArticle() {
   const articleLength = [
-    {
-      length: 800,
-      text: "Short (500-800 words)",
-    },
-    {
-      length: 1200,
-      text: "Medium (800-1200 words)",
-    },
-    {
-      length: 1600,
-      text: "Long (1200+ words)",
-    },
+    { length: 800, text: "Short (500-800 words)" },
+    { length: 1200, text: "Medium (800-1200 words)" },
+    { length: 1600, text: "Long (1200+ words)" },
   ];
 
   const toneOptions = [
@@ -49,21 +42,35 @@ function WriteArticle() {
     e.preventDefault();
 
     if (!input.trim()) {
-      alert("Please enter a topic or prompt");
+      toast.error("Please enter a topic or prompt");
       return;
     }
 
     setIsLoading(true);
     setGeneratedArticle("");
+    setIsEditing(false);
 
-    // Simulate API call - Replace with actual API
-    setTimeout(() => {
-      const mockArticle = `# ${input}\n\nThis is a ${selectedTone.toLowerCase()} article about ${input}.\n\n## Introduction\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.\n\n## Main Content\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n### Key Points\n\n1. First important point about ${input}\n2. Second crucial aspect to consider\n3. Third valuable insight\n\n## Detailed Analysis\n\nSed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.\n\n## Conclusion\n\nNemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.\n\n---\n\n**Keywords**: ${keywords || "AI, Technology, Innovation"}\n**Target Length**: ${selectedLength} words\n**Tone**: ${selectedTone}`;
+    try {
+      const response = await axiosInstance.post("/ai/write-article", {
+        topic: input,
+        tone: selectedTone,
+        length: selectedLength,
+        keywords: keywords,
+      });
 
-      setGeneratedArticle(mockArticle);
-      setEditedArticle(mockArticle);
+      if (response.data?.success) {
+        const article = response.data.data.article;
+        setGeneratedArticle(article);
+        setEditedArticle(article);
+      } else {
+        toast.error("Failed to generate article");
+      }
+    } catch (error) {
+      console.error("WriteArticle API error:", error);
+      toast.error("Error generating article");
+    } finally {
       setIsLoading(false);
-    }, 3000);
+    }
   };
 
   const handleCopy = () => {
@@ -71,6 +78,7 @@ function WriteArticle() {
     navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    toast.success("Copied to clipboard!");
   };
 
   const handleDownload = () => {
@@ -82,11 +90,11 @@ function WriteArticle() {
     a.download = `${input.substring(0, 30).replace(/\s+/g, "-")}.md`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("Article downloaded!");
   };
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Save changes
       setGeneratedArticle(editedArticle);
     }
     setIsEditing(!isEditing);
@@ -156,9 +164,7 @@ function WriteArticle() {
                     } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <span className="font-medium">{item.text}</span>
-                    {selectedLength === item.length && (
-                      <Check className="w-5 h-5" />
-                    )}
+                    {selectedLength === item.length && <Check className="w-5 h-5" />}
                   </button>
                 ))}
               </div>

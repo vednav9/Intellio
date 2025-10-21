@@ -4,20 +4,16 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 export const generateContent = async (prompt, temperature = 0.7) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature,
-        topP: 0.95,
-        topK: 40,
-        maxOutputTokens: 8192,
-      },
+    // Use Gemini 2.5 Flash - stable and fast
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash'
     });
-
-    const response = result.response;
-    return response.text();
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    return text;
   } catch (error) {
     console.error('Gemini API Error:', error);
     throw new Error('Failed to generate content');
@@ -26,20 +22,28 @@ export const generateContent = async (prompt, temperature = 0.7) => {
 
 export const generateContentWithImage = async (prompt, imageBase64) => {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+    // Gemini 2.5 Flash supports images too
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash'
+    });
     
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: imageBase64,
-          mimeType: 'image/jpeg',
-        },
+    // Remove data URL prefix if present
+    const base64Data = imageBase64.includes(',') 
+      ? imageBase64.split(',')[1] 
+      : imageBase64;
+    
+    const imagePart = {
+      inlineData: {
+        data: base64Data,
+        mimeType: 'image/jpeg',
       },
-    ]);
-
-    const response = result.response;
-    return response.text();
+    };
+    
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const text = response.text();
+    
+    return text;
   } catch (error) {
     console.error('Gemini Vision API Error:', error);
     throw new Error('Failed to process image');

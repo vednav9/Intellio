@@ -15,6 +15,8 @@ import {
   Target,
   Zap,
 } from "lucide-react";
+import axiosInstance from "../api/axios";
+import toast from "react-hot-toast";
 
 function ReviewResume() {
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -39,7 +41,7 @@ function ReviewResume() {
       setFileName(file.name);
       setReviewData(null);
     } else {
-      alert("Please upload a valid resume file (PDF or DOCX)");
+      toast.error("Please upload a valid resume file (PDF or DOCX)");
     }
   };
 
@@ -71,64 +73,51 @@ function ReviewResume() {
 
   const handleAnalyzeResume = async () => {
     if (!uploadedFile) {
-      alert("Please upload a resume first");
+      toast.error("Please upload a resume first");
       return;
     }
 
     setIsAnalyzing(true);
     setProgress(0);
 
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 300);
+    try {
+      // Prepare form data
+      const formData = new FormData();
+      formData.append("resume", uploadedFile);
+      formData.append("targetRole", targetRole);
 
-    // Simulate API call - Replace with actual resume analysis API
-    setTimeout(() => {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+
+      // Call actual backend API
+      const response = await axiosInstance.post("/ai/review-resume", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       clearInterval(progressInterval);
       setProgress(100);
 
-      // Mock review data
-      const mockReview = {
-        overallScore: 85,
-        scores: {
-          content: 90,
-          formatting: 82,
-          ats: 78,
-          experience: 88,
-          skills: 85,
-        },
-        strengths: [
-          "Clear and quantified achievements with specific metrics",
-          "Strong technical skills section with relevant technologies",
-          "Well-organized with consistent formatting",
-          "Professional summary clearly states value proposition",
-          "Good use of action verbs throughout",
-        ],
-        improvements: [
-          "Add more industry-specific keywords for better ATS compatibility",
-          "Include relevant certifications and professional development",
-          "Expand on leadership and soft skills examples",
-          "Consider adding a projects section with links",
-          "Optimize file format to ensure ATS compatibility",
-        ],
-        keywords: {
-          found: ["JavaScript", "React", "Python", "Team Leadership", "Agile"],
-          missing: ["Cloud Computing", "CI/CD", "Microservices", "Docker"],
-        },
-        atsScore: 78,
-      };
-
-      setReviewData(mockReview);
+      if (response.data.success) {
+        setReviewData(response.data.data);
+        toast.success("Resume analysis completed");
+      } else {
+        toast.error("Analysis failed");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error analyzing resume");
+      console.error("ReviewResume API error:", error);
+    } finally {
       setIsAnalyzing(false);
       setProgress(0);
-    }, 3000);
+    }
   };
 
   const handleReset = () => {
@@ -161,6 +150,37 @@ function ReviewResume() {
     return "Needs Improvement";
   };
 
+  const handleDownload = () => {
+    if (!reviewData) {
+      toast.error("No review data to download");
+      return;
+    }
+
+    try {
+      const report = `RESUME REVIEW REPORT\n${"=".repeat(
+        20
+      )}\n\nOverall Score: ${
+        reviewData.overallScore
+      }/100\n\nSTRENGTHS:\n${reviewData.strengths
+        .map((s, i) => `${i + 1}. ${s}`)
+        .join("\n")}\n\nIMPROVEMENTS:\n${reviewData.improvements
+        .map((s, i) => `${i + 1}. ${s}`)
+        .join("\n")}`;
+
+      const blob = new Blob([report], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `resume-review-${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success("Report downloaded!");
+    } catch (error) {
+      toast.error("Download failed");
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -172,8 +192,8 @@ function ReviewResume() {
           <h1 className="text-3xl font-bold text-gray-900">Review Resume</h1>
         </div>
         <p className="text-gray-600">
-          Get instant AI-powered feedback on your resume. Improve your chances of
-          landing your dream job.
+          Get instant AI-powered feedback on your resume. Improve your chances
+          of landing your dream job.
         </p>
       </div>
 
@@ -182,7 +202,6 @@ function ReviewResume() {
         {/* Left Column - Upload */}
         <div className="space-y-6">
           {!uploadedFile ? (
-            // Upload Zone
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -222,9 +241,8 @@ function ReviewResume() {
               </div>
             </div>
           ) : (
-            // File Info & Controls
             <div className="space-y-6">
-              {/* File Preview Card */}
+              {/* File Info & Analyze Button */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900">
@@ -238,7 +256,7 @@ function ReviewResume() {
                     <X className="w-5 h-5 text-gray-600" />
                   </button>
                 </div>
-                <div className="flex items-start gap-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                <div className="flex items-center gap-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
                   <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
                     <FileText className="w-6 h-6 text-indigo-600" />
                   </div>
@@ -251,87 +269,79 @@ function ReviewResume() {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              {/* Target Role Input (Optional) */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  Target Job Role
-                  <span className="text-gray-400 text-xs ml-2">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  placeholder="e.g., Senior Software Engineer, Product Manager"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 ring-indigo-500/50 focus:border-indigo-500 outline-none text-gray-700 placeholder-gray-400 transition-all"
-                  disabled={isAnalyzing}
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Help us tailor the review to your desired position
-                </p>
-              </div>
-
-              {/* Analyze Button */}
-              {!reviewData && !isAnalyzing && (
-                <button
-                  onClick={handleAnalyzeResume}
-                  className="group w-full flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white rounded-xl font-semibold text-base transition-all hover:shadow-xl hover:shadow-indigo-500/25 hover:scale-[1.02] active:scale-95"
-                >
-                  <FileCheck className="w-5 h-5 transition-transform group-hover:rotate-12" />
-                  Analyze Resume
-                  <Sparkles className="w-5 h-5" />
-                </button>
-              )}
-
-              {/* Processing State */}
-              {isAnalyzing && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
-                    <span className="font-medium text-gray-900">
-                      Analyzing... {progress}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300 ease-out"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
+                {/* Target Role Input */}
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Target Job Role
+                  </label>
+                  <input
+                    type="text"
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                    placeholder="e.g., Senior Developer, Product Manager"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-700 transition-all"
+                    disabled={isAnalyzing}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Help us tailor the review for your desired position.
+                  </p>
                 </div>
-              )}
 
-              {/* Upload Another Button */}
-              {reviewData && (
-                <button
-                  onClick={handleReset}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 text-gray-700 bg-white border-2 border-gray-200 rounded-lg font-medium hover:border-indigo-500 hover:text-indigo-600 transition-all"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Review Another Resume
-                </button>
-              )}
+                {/* Analyze Button */}
+                {!reviewData && !isAnalyzing && (
+                  <button
+                    onClick={handleAnalyzeResume}
+                    className="mt-6 w-full px-8 py-4 bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-xl hover:shadow-indigo-500/25 transition-all active:scale-95"
+                  >
+                    <FileCheck className="w-5 h-5 mr-2 inline-block" />
+                    Analyze Resume
+                  </button>
+                )}
+
+                {/* Processing */}
+                {isAnalyzing && (
+                  <div className="mt-6 p-4 bg-white rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+                      <span className="font-medium text-gray-900">
+                        Analyzing... {progress}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Reset Button */}
+                {reviewData && (
+                  <button
+                    onClick={handleReset}
+                    className="mt-6 w-full px-6 py-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4 inline-block mr-2" />
+                    Review Another Resume
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Info Card */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-6">
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">
-                  What We Analyze
-                </h4>
-                <ul className="text-sm text-gray-700 space-y-1">
-                  <li>• Content quality and relevance</li>
-                  <li>• ATS (Applicant Tracking System) compatibility</li>
-                  <li>• Formatting and visual appeal</li>
-                  <li>• Keywords and industry terms</li>
-                  <li>• Experience and skills presentation</li>
-                </ul>
-              </div>
-            </div>
+          {/* Info */}
+          <div className="mt-8 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <h4 className="font-semibold mb-2 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-indigo-600" /> What We Analyze
+            </h4>
+            <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+              <li>• Content quality and relevance</li>
+              <li>• ATS (Applicant Tracking System) compatibility</li>
+              <li>• Formatting and visual appeal</li>
+              <li>• Keywords and industry terms</li>
+              <li>• Experience and skills presentation</li>
+            </ul>
           </div>
         </div>
 
@@ -342,12 +352,14 @@ function ReviewResume() {
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <FileCheck className="w-5 h-5 text-indigo-600" />
-                Resume Analysis
+                Review Summary
               </h3>
               {reviewData && (
-                <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
-                  <Download className="w-4 h-4" />
-                  Download Report
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Download Report
                 </button>
               )}
             </div>
@@ -355,10 +367,9 @@ function ReviewResume() {
             {/* Review Content */}
             <div className="p-6 min-h-[500px] max-h-[700px] overflow-y-auto">
               {isAnalyzing ? (
-                // Analyzing State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h4 className="text-lg font-semibold mb-2">
                     Analyzing Your Resume
                   </h4>
                   <p className="text-sm text-gray-600 max-w-sm mb-4">
@@ -370,7 +381,6 @@ function ReviewResume() {
                   </div>
                 </div>
               ) : reviewData ? (
-                // Review Results
                 <div className="space-y-6">
                   {/* Overall Score */}
                   <div className="text-center">
@@ -396,46 +406,44 @@ function ReviewResume() {
                       {getScoreLabel(reviewData.overallScore)} Resume
                     </h4>
                     <p className="text-sm text-gray-600">
-                      Your resume is well-crafted with room for improvement
+                      Your resume is{" "}
+                      {getScoreLabel(reviewData.overallScore).toLowerCase()}{" "}
+                      with room for improvement.
                     </p>
                   </div>
 
                   {/* Score Breakdown */}
                   <div>
                     <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <Award className="w-4 h-4 text-indigo-600" />
-                      Score Breakdown
+                      <Award className="w-4 h-4 text-indigo-600" /> Score
+                      Breakdown
                     </h5>
-                    <div className="space-y-3">
-                      {Object.entries(reviewData.scores).map(([key, value]) => (
-                        <div key={key}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-medium text-gray-700 capitalize">
-                              {key.replace(/([A-Z])/g, " $1").trim()}
-                            </span>
-                            <span
-                              className={`text-sm font-bold ${getScoreColor(
-                                value
-                              )}`}
-                            >
-                              {value}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                            <div
-                              className={`h-full transition-all duration-500 ${
-                                value >= 80
-                                  ? "bg-green-500"
-                                  : value >= 60
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }`}
-                              style={{ width: `${value}%` }}
-                            />
-                          </div>
+                    {Object.entries(reviewData.scores).map(([key, value]) => (
+                      <div key={key} className="mb-3">
+                        <div className="flex justify-between mb-1">
+                          <span className="capitalize">
+                            {key.replace(/([A-Z])/g, " $1")}
+                          </span>
+                          <span
+                            className={`font-semibold ${getScoreColor(value)}`}
+                          >
+                            {value}%
+                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              value >= 80
+                                ? "bg-green-500"
+                                : value >= 60
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}
+                            style={{ width: `${value}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* ATS Compatibility */}
@@ -443,21 +451,25 @@ function ReviewResume() {
                     <div className="flex items-start gap-3">
                       <Zap className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <h5 className="text-sm font-semibold text-gray-900 mb-1">
+                        <h5 className="text-sm font-semibold mb-1">
                           ATS Compatibility Score
                         </h5>
-                        <p className="text-xs text-gray-600 mb-2">
+                        <p className="text-xs mb-2">
                           How well your resume works with applicant tracking
                           systems
                         </p>
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
                               className="h-full bg-indigo-600 rounded-full transition-all duration-500"
                               style={{ width: `${reviewData.atsScore}%` }}
                             />
                           </div>
-                          <span className="text-sm font-bold text-indigo-600">
+                          <span
+                            className={`font-semibold ${getScoreColor(
+                              reviewData.atsScore
+                            )}`}
+                          >
                             {reviewData.atsScore}%
                           </span>
                         </div>
@@ -468,36 +480,27 @@ function ReviewResume() {
                   {/* Strengths */}
                   <div>
                     <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      Strengths
+                      <Check className="w-4 h-4 text-green-600" /> Strengths
                     </h5>
-                    <ul className="space-y-2">
+                    <ul className="list-disc list-inside space-y-2">
                       {reviewData.strengths.map((strength, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 text-sm text-gray-700"
-                        >
-                          <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>{strength}</span>
+                        <li key={index} className="text-gray-700 text-sm">
+                          {strength}
                         </li>
                       ))}
                     </ul>
                   </div>
 
-                  {/* Areas for Improvement */}
+                  {/* Improvements */}
                   <div>
                     <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-orange-600" />
-                      Areas for Improvement
+                      <AlertCircle className="w-4 h-4 text-orange-600" /> Areas
+                      for Improvement
                     </h5>
-                    <ul className="space-y-2">
+                    <ul className="list-disc list-inside space-y-2">
                       {reviewData.improvements.map((improvement, index) => (
-                        <li
-                          key={index}
-                          className="flex items-start gap-2 text-sm text-gray-700"
-                        >
-                          <AlertCircle className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" />
-                          <span>{improvement}</span>
+                        <li key={index} className="text-gray-700 text-sm">
+                          {improvement}
                         </li>
                       ))}
                     </ul>
@@ -506,76 +509,58 @@ function ReviewResume() {
                   {/* Keywords */}
                   <div>
                     <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                      <Target className="w-4 h-4 text-indigo-600" />
-                      Keywords Analysis
+                      <Target className="w-4 h-4 text-indigo-600" /> Keywords
+                      Analysis
                     </h5>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 mb-2">
-                          Found in Resume:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {reviewData.keywords.found.map((keyword, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
+                    <div className="mb-4">
+                      <p className="text-xs font-medium mb-1">
+                        Found in Resume:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {reviewData.keywords.found.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
                       </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-600 mb-2">
-                          Consider Adding:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {reviewData.keywords.missing.map((keyword, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-medium"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                        </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium mb-1">
+                        Consider Adding:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {reviewData.keywords.missing.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                // Empty State
+                // Empty state
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                    <FileCheck className="w-10 h-10 text-gray-400" />
+                    <FileText className="w-10 h-10 text-gray-400" />
                   </div>
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
                     No Resume Analyzed Yet
                   </h4>
                   <p className="text-sm text-gray-600 max-w-sm">
-                    Upload your resume and click "Analyze Resume" to get detailed
-                    feedback and improvement suggestions.
+                    Upload your resume and click "Analyze Resume" to get
+                    detailed feedback and improvement suggestions.
                   </p>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Success Info */}
-          {reviewData && !isAnalyzing && (
-            <div className="mt-4 bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-indigo-800">
-                  <p className="font-medium mb-1">Analysis Complete!</p>
-                  <p className="text-xs text-indigo-700">
-                    Review the feedback above to improve your resume and increase
-                    your chances of getting hired.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

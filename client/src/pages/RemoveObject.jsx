@@ -15,6 +15,8 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import axiosInstance from "../api/axios";
+import toast from "react-hot-toast";
 
 function RemoveObject() {
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -38,7 +40,6 @@ function RemoveObject() {
       const canvas = canvasRef.current;
       const image = imageRef.current;
 
-      // Wait for image to load
       image.onload = () => {
         canvas.width = image.naturalWidth;
         canvas.height = image.naturalHeight;
@@ -63,7 +64,7 @@ function RemoveObject() {
       };
       reader.readAsDataURL(file);
     } else {
-      alert("Please upload a valid image file (PNG, JPG, JPEG, WebP)");
+      toast.error("Please upload a valid image file (PNG, JPG, JPEG, WebP)");
     }
   };
 
@@ -131,6 +132,7 @@ function RemoveObject() {
   };
 
   const stopDrawing = () => {
+    if (!isDrawing) return;
     setIsDrawing(false);
     contextRef.current.closePath();
   };
@@ -145,12 +147,12 @@ function RemoveObject() {
 
   const handleRemoveObject = async () => {
     if (!uploadedImage) {
-      alert("Please upload an image first");
+      toast.error("Please upload an image first");
       return;
     }
 
     const canvas = canvasRef.current;
-    const maskData = canvas.toDataURL();
+    const maskDataURL = canvas.toDataURL();
 
     // Check if mask is empty
     const context = contextRef.current;
@@ -158,35 +160,54 @@ function RemoveObject() {
     const hasDrawing = imageData.data.some((value) => value !== 0);
 
     if (!hasDrawing) {
-      alert("Please mark the objects you want to remove");
+      toast.error("Please mark the objects you want to remove");
       return;
     }
 
     setIsProcessing(true);
     setProgress(0);
 
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 15;
-      });
-    }, 200);
+    try {
+      // Prepare multipart form
+      const formData = new FormData();
+      formData.append("image", uploadedImage);
 
-    // Simulate API call - Replace with actual object removal API
-    // Send both image and mask to backend
-    setTimeout(() => {
+      // Convert base64 maskDataURL to Blob
+      const res = await fetch(maskDataURL);
+      const blobMask = await res.blob();
+      formData.append("mask", blobMask, "mask.png");
+
+      // Progress simulation
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 15;
+        });
+      }, 200);
+
+      const response = await axiosInstance.post("/ai/remove-object", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       clearInterval(progressInterval);
       setProgress(100);
 
-      // Mock processed image - In production, this would be the API response
-      setProcessedImage(previewUrl);
+      if (response.data.success) {
+        setProcessedImage(response.data.data.processedImage);
+        toast.success("Objects removed successfully!");
+      } else {
+        toast.error("Failed to remove objects.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error removing objects.");
+      console.error("RemoveObject API error:", error);
+    } finally {
       setIsProcessing(false);
       setProgress(0);
-    }, 2500);
+    }
   };
 
   const handleDownload = () => {
@@ -222,8 +243,7 @@ function RemoveObject() {
           <h1 className="text-3xl font-bold text-gray-900">Remove Object</h1>
         </div>
         <p className="text-gray-600">
-          Remove unwanted objects from your images. Mark the objects you want to
-          remove and let AI do the rest.
+          Remove unwanted objects from your images. Mark the objects you want to remove and let AI do the rest.
         </p>
       </div>
 
@@ -232,24 +252,19 @@ function RemoveObject() {
         {/* Left Column - Upload & Edit */}
         <div className="space-y-6">
           {!previewUrl ? (
-            // Upload Zone
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={`bg-white rounded-xl border-2 border-dashed p-12 shadow-sm transition-all ${
-                isDragging
-                  ? "border-orange-500 bg-orange-50"
-                  : "border-gray-300 hover:border-orange-400"
+                isDragging ? "border-orange-500 bg-orange-50" : "border-gray-300 hover:border-orange-400"
               }`}
             >
               <div className="flex flex-col items-center justify-center text-center">
                 <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center mb-4">
                   <Upload className="w-10 h-10 text-orange-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Upload an Image
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload an Image</h3>
                 <p className="text-sm text-gray-600 mb-6 max-w-sm">
                   Drag and drop your image here, or click to browse
                 </p>
@@ -266,20 +281,15 @@ function RemoveObject() {
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
-                <p className="text-xs text-gray-500 mt-4">
-                  Supports: JPG, PNG, WebP (Max 10MB)
-                </p>
+                <p className="text-xs text-gray-500 mt-4">Supports: JPG, PNG, WebP (Max 10MB)</p>
               </div>
             </div>
           ) : (
-            // Image Editor
             <div className="space-y-6">
               {/* Canvas Editor Card */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Mark Objects to Remove
-                  </h3>
+                  <h3 className="font-semibold text-gray-900">Mark Objects to Remove</h3>
                   <button
                     onClick={handleReset}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -289,7 +299,6 @@ function RemoveObject() {
                   </button>
                 </div>
 
-                {/* Canvas Container */}
                 <div className="relative rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                   <img
                     ref={imageRef}
@@ -316,9 +325,7 @@ function RemoveObject() {
 
               {/* Drawing Tools */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  Drawing Tools
-                </label>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Drawing Tools</label>
 
                 {/* Tool Selector */}
                 <div className="flex gap-3 mb-4">
@@ -349,12 +356,8 @@ function RemoveObject() {
                 {/* Brush Size */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Brush Size
-                    </span>
-                    <span className="text-sm font-semibold text-orange-600">
-                      {brushSize}px
-                    </span>
+                    <span className="text-sm font-medium text-gray-700">Brush Size</span>
+                    <span className="text-sm font-semibold text-orange-600">{brushSize}px</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -407,9 +410,7 @@ function RemoveObject() {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <Loader2 className="w-5 h-5 text-orange-600 animate-spin" />
-                    <span className="font-medium text-gray-900">
-                      Processing... {progress}%
-                    </span>
+                    <span className="font-medium text-gray-900">Processing... {progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <div
@@ -438,9 +439,7 @@ function RemoveObject() {
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">
-                  How to Use
-                </h4>
+                <h4 className="font-semibold text-gray-900 mb-2">How to Use</h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Paint over objects you want to remove</li>
                   <li>• Use eraser to fix mistakes</li>
@@ -455,7 +454,6 @@ function RemoveObject() {
         {/* Right Column - Result */}
         <div className="lg:sticky lg:top-8 lg:self-start">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Result Header */}
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Eraser className="w-5 h-5 text-orange-600" />
@@ -463,7 +461,6 @@ function RemoveObject() {
               </h3>
               {processedImage && (
                 <div className="flex items-center gap-2">
-                  {/* Comparison Toggle */}
                   <button
                     onClick={() => setShowComparison(!showComparison)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -471,7 +468,6 @@ function RemoveObject() {
                     <ArrowLeftRight className="w-4 h-4" />
                     {showComparison ? "Hide" : "Compare"}
                   </button>
-                  {/* Download Button */}
                   <button
                     onClick={handleDownload}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors"
@@ -483,33 +479,22 @@ function RemoveObject() {
               )}
             </div>
 
-            {/* Result Content */}
             <div className="p-6 min-h-[500px] max-h-[700px] overflow-y-auto">
               {isProcessing ? (
-                // Processing State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <Loader2 className="w-12 h-12 text-orange-600 animate-spin mb-4" />
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    Removing Objects
-                  </h4>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Removing Objects</h4>
                   <p className="text-sm text-gray-600 max-w-sm mb-4">
-                    Our AI is intelligently removing the marked objects and
-                    filling the gaps...
+                    Our AI is intelligently removing the marked objects and filling the gaps...
                   </p>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {progress}%
-                  </div>
+                  <div className="text-2xl font-bold text-orange-600">{progress}%</div>
                 </div>
               ) : processedImage ? (
-                // Processed Result
                 <div className="space-y-4">
-                  {/* Comparison View */}
                   {showComparison ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-2">
-                          BEFORE
-                        </p>
+                        <p className="text-xs font-semibold text-gray-600 mb-2">BEFORE</p>
                         <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                           <img
                             src={previewUrl}
@@ -519,9 +504,7 @@ function RemoveObject() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-2">
-                          AFTER
-                        </p>
+                        <p className="text-xs font-semibold text-gray-600 mb-2">AFTER</p>
                         <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                           <img
                             src={processedImage}
@@ -532,7 +515,6 @@ function RemoveObject() {
                       </div>
                     </div>
                   ) : (
-                    // Single View
                     <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                       <img
                         src={processedImage}
@@ -543,39 +525,34 @@ function RemoveObject() {
                   )}
                 </div>
               ) : (
-                // Empty State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                     <Eraser className="w-10 h-10 text-gray-400" />
                   </div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    No Image Processed Yet
-                  </h4>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">No Image Processed Yet</h4>
                   <p className="text-sm text-gray-600 max-w-sm">
-                    Upload an image, mark the objects you want to remove, and
-                    click "Remove Marked Objects".
+                    Upload an image, mark the objects you want to remove, and click "Remove Marked Objects".
                   </p>
                 </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Success Info */}
-          {processedImage && !isProcessing && (
-            <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-orange-800">
-                  <p className="font-medium mb-1">Objects Removed Successfully!</p>
-                  <p className="text-xs text-orange-700">
-                    The marked objects have been intelligently removed from your
-                    image.
-                  </p>
-                </div>
+        {/* Success Info */}
+        {processedImage && !isProcessing && (
+          <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-orange-800">
+                <p className="font-medium mb-1">Objects Removed Successfully!</p>
+                <p className="text-xs text-orange-700">
+                  The marked objects have been intelligently removed from your image.
+                </p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

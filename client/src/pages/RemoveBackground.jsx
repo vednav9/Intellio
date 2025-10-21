@@ -11,6 +11,8 @@ import {
   Sparkles,
   ArrowLeftRight,
 } from "lucide-react";
+import axiosInstance from "../api/axios";
+import toast from "react-hot-toast";
 
 function RemoveBackground() {
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -21,7 +23,7 @@ function RemoveBackground() {
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [showComparison, setShowComparison] = useState(false);
   const [progress, setProgress] = useState(0);
-  
+
   const fileInputRef = useRef(null);
 
   const handleFileSelect = (file) => {
@@ -34,7 +36,7 @@ function RemoveBackground() {
       };
       reader.readAsDataURL(file);
     } else {
-      alert("Please upload a valid image file (PNG, JPG, JPEG, WebP)");
+      toast.error("Please upload a valid image file (PNG, JPG, JPEG, WebP)");
     }
   };
 
@@ -66,35 +68,48 @@ function RemoveBackground() {
 
   const handleRemoveBackground = async () => {
     if (!uploadedImage) {
-      alert("Please upload an image first");
+      toast.error("Please upload an image first");
       return;
     }
 
     setIsProcessing(true);
     setProgress(0);
 
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 15;
-      });
-    }, 200);
+    const formData = new FormData();
+    formData.append("image", uploadedImage);
 
-    // Simulate API call - Replace with actual background removal API
-    // (e.g., remove.bg API, or your own backend)
-    setTimeout(() => {
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 15;
+        });
+      }, 200);
+
+      const response = await axiosInstance.post("/ai/remove-background", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       clearInterval(progressInterval);
       setProgress(100);
-      
-      // Mock processed image - In production, this would be the API response
-      setProcessedImage(previewUrl);
+
+      if (response.data.success) {
+        setProcessedImage(response.data.data.processedImage);
+        toast.success("Background removed successfully!");
+      } else {
+        toast.error("Failed to remove background.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error removing background.");
+      console.error("RemoveBackground API error:", error);
+    } finally {
       setIsProcessing(false);
       setProgress(0);
-    }, 2000);
+    }
   };
 
   const handleDownload = () => {
@@ -137,13 +152,10 @@ function RemoveBackground() {
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
             <Scissors className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Remove Background
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Remove Background</h1>
         </div>
         <p className="text-gray-600">
-          Remove image backgrounds automatically with AI. Perfect for product
-          photos, portraits, and more.
+          Remove image backgrounds automatically with AI. Perfect for product photos, portraits, and more.
         </p>
       </div>
 
@@ -152,24 +164,19 @@ function RemoveBackground() {
         {/* Left Column - Upload */}
         <div className="space-y-6">
           {!previewUrl ? (
-            // Upload Zone
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               className={`bg-white rounded-xl border-2 border-dashed p-12 shadow-sm transition-all ${
-                isDragging
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-300 hover:border-green-400"
+                isDragging ? "border-green-500 bg-green-50" : "border-gray-300 hover:border-green-400"
               }`}
             >
               <div className="flex flex-col items-center justify-center text-center">
                 <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
                   <Upload className="w-10 h-10 text-green-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Upload an Image
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload an Image</h3>
                 <p className="text-sm text-gray-600 mb-6 max-w-sm">
                   Drag and drop your image here, or click to browse
                 </p>
@@ -186,20 +193,15 @@ function RemoveBackground() {
                   onChange={handleFileInputChange}
                   className="hidden"
                 />
-                <p className="text-xs text-gray-500 mt-4">
-                  Supports: JPG, PNG, WebP (Max 10MB)
-                </p>
+                <p className="text-xs text-gray-500 mt-4">Supports: JPG, PNG, WebP (Max 10MB)</p>
               </div>
             </div>
           ) : (
-            // Image Preview & Controls
             <div className="space-y-6">
               {/* Preview Card */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Original Image
-                  </h3>
+                  <h3 className="font-semibold text-gray-900">Original Image</h3>
                   <button
                     onClick={handleReset}
                     className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -238,9 +240,7 @@ function RemoveBackground() {
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
-                    <span className="font-medium text-gray-900">
-                      Processing... {progress}%
-                    </span>
+                    <span className="font-medium text-gray-900">Processing... {progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <div
@@ -269,9 +269,7 @@ function RemoveBackground() {
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">
-                  Best Results Tips
-                </h4>
+                <h4 className="font-semibold text-gray-900 mb-2">Best Results Tips</h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Use high-resolution images</li>
                   <li>• Clear subject with good contrast</li>
@@ -317,30 +315,22 @@ function RemoveBackground() {
             {/* Result Content */}
             <div className="p-6 min-h-[500px] max-h-[700px] overflow-y-auto">
               {isProcessing ? (
-                // Processing State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <Loader2 className="w-12 h-12 text-green-600 animate-spin mb-4" />
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">
                     Removing Background
                   </h4>
                   <p className="text-sm text-gray-600 max-w-sm mb-4">
-                    Our AI is carefully removing the background from your
-                    image...
+                    Our AI is carefully removing the background from your image...
                   </p>
-                  <div className="text-2xl font-bold text-green-600">
-                    {progress}%
-                  </div>
+                  <div className="text-2xl font-bold text-green-600">{progress}%</div>
                 </div>
               ) : processedImage ? (
-                // Processed Result
                 <div className="space-y-6">
-                  {/* Comparison View */}
                   {showComparison ? (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-2">
-                          BEFORE
-                        </p>
+                        <p className="text-xs font-semibold text-gray-600 mb-2">BEFORE</p>
                         <div className="rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                           <img
                             src={previewUrl}
@@ -350,9 +340,7 @@ function RemoveBackground() {
                         </div>
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-gray-600 mb-2">
-                          AFTER
-                        </p>
+                        <p className="text-xs font-semibold text-gray-600 mb-2">AFTER</p>
                         <div
                           className="rounded-lg overflow-hidden border border-gray-200"
                           style={{
@@ -368,7 +356,6 @@ function RemoveBackground() {
                       </div>
                     </div>
                   ) : (
-                    // Single View with Checkerboard
                     <div
                       className="rounded-lg overflow-hidden border border-gray-200"
                       style={{
@@ -383,12 +370,9 @@ function RemoveBackground() {
                     </div>
                   )}
 
-                  {/* Background Color Selector */}
                   {!showComparison && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-3">
-                        Background Color
-                      </label>
+                      <label className="block text-sm font-semibold text-gray-900 mb-3">Background Color</label>
                       <div className="flex flex-wrap gap-2">
                         {backgroundColors.map((color) => (
                           <button
@@ -407,7 +391,6 @@ function RemoveBackground() {
                             )}
                           </button>
                         ))}
-                        {/* Custom Color Picker */}
                         <label
                           className="relative w-10 h-10 rounded-lg border-2 border-gray-300 cursor-pointer hover:scale-110 transition-all overflow-hidden"
                           title="Custom Color"
@@ -430,38 +413,32 @@ function RemoveBackground() {
                   )}
                 </div>
               ) : (
-                // Empty State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                     <Scissors className="w-10 h-10 text-gray-400" />
                   </div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    No Image Processed Yet
-                  </h4>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">No Image Processed Yet</h4>
                   <p className="text-sm text-gray-600 max-w-sm">
-                    Upload an image and click "Remove Background" to see the
-                    magic happen.
+                    Upload an image and click "Remove Background" to see the magic happen.
                   </p>
                 </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Success Info */}
-          {processedImage && !isProcessing && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-green-800">
-                  <p className="font-medium mb-1">Background Removed!</p>
-                  <p className="text-xs text-green-700">
-                    Download your image or try different background colors.
-                  </p>
-                </div>
+        {/* Success Info */}
+        {processedImage && !isProcessing && (
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-green-800">
+                <p className="font-medium mb-1">Background Removed!</p>
+                <p className="text-xs text-green-700">Download your image or try different background colors.</p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

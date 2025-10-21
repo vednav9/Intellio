@@ -10,21 +10,23 @@ import {
   Wand2,
   TrendingUp,
 } from "lucide-react";
+import axiosInstance from "../api/axios";
+import toast from "react-hot-toast";
+
+const blogCategories = [
+  "General",
+  "Technology",
+  "Business",
+  "Health",
+  "Lifestyle",
+  "Education",
+  "Travel",
+  "Food",
+];
+
+const numberOfTitlesOptions = [5, 10, 15];
 
 function BlogTitle() {
-  const blogCategories = [
-    "General",
-    "Technology",
-    "Business",
-    "Health",
-    "Lifestyle",
-    "Education",
-    "Travel",
-    "Food",
-  ];
-
-  const numberOfTitlesOptions = [5, 10, 15];
-
   const [selectedCategory, setSelectedCategory] = useState("General");
   const [input, setInput] = useState("");
   const [numberOfTitles, setNumberOfTitles] = useState(5);
@@ -37,48 +39,40 @@ function BlogTitle() {
     e.preventDefault();
 
     if (!input.trim()) {
-      alert("Please enter a blog topic or keyword");
+      toast.error("Please enter a blog topic or keyword");
       return;
     }
 
     setIsLoading(true);
     setGeneratedTitles([]);
 
-    // Simulate API call - Replace with actual API
-    setTimeout(() => {
-      const mockTitles = [
-        `10 ${input} Tips Every Beginner Should Know`,
-        `The Ultimate Guide to ${input} in ${new Date().getFullYear()}`,
-        `How to Master ${input}: A Complete Roadmap`,
-        `${input} Explained: Everything You Need to Know`,
-        `Why ${input} Is More Important Than Ever`,
-        `5 Common ${input} Mistakes and How to Avoid Them`,
-        `The Future of ${input}: Trends and Predictions`,
-        `${input} vs Traditional Methods: Which Is Better?`,
-        `Beginner's Guide to ${input}: Start Here`,
-        `Advanced ${input} Techniques for Professionals`,
-        `How ${input} Changed My Life: A Personal Story`,
-        `${input} Success Stories: Real Results from Real People`,
-        `The Science Behind ${input}: What Research Says`,
-        `${input} Hacks That Will Save You Time and Money`,
-        `From Zero to Hero: My ${input} Journey`,
-      ];
+    try {
+      const response = await axiosInstance.post("/ai/blog-titles", {
+        topic: input.trim(),
+        category: selectedCategory,
+        count: numberOfTitles,
+      });
 
-      // Get the requested number of titles
-      const titles = mockTitles.slice(0, numberOfTitles).map((title, idx) => ({
-        id: idx + 1,
-        title: title,
-      }));
-
-      setGeneratedTitles(titles);
+      if (response.data.success) {
+        // Use returned titles array
+        setGeneratedTitles(response.data.data.titles);
+        toast.success("Blog titles generated successfully!");
+      } else {
+        toast.error("Failed to generate blog titles.");
+      }
+    } catch (error) {
+      console.error("BlogTitle API error:", error);
+      toast.error(error.response?.data?.message || "Error generating titles");
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const handleCopy = (title, index) => {
     navigator.clipboard.writeText(title);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
+    toast.success("Copied to clipboard!");
   };
 
   const toggleFavorite = (id) => {
@@ -105,13 +99,10 @@ function BlogTitle() {
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center">
             <Heading className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Blog Title Generator
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900">Blog Title Generator</h1>
         </div>
         <p className="text-gray-600">
-          Generate catchy, SEO-friendly blog titles in seconds. Perfect for
-          content creators.
+          Generate catchy, SEO-friendly blog titles in seconds. Perfect for content creators.
         </p>
       </div>
 
@@ -123,8 +114,7 @@ function BlogTitle() {
             {/* Input Card */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
               <label className="block text-sm font-semibold text-gray-900 mb-3">
-                Blog Topic / Keywords
-                <span className="text-red-500 ml-1">*</span>
+                Blog Topic / Keywords <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="text"
@@ -134,16 +124,12 @@ function BlogTitle() {
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 ring-primary/50 focus:border-primary outline-none text-gray-700 placeholder-gray-400 transition-all"
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-500 mt-2">
-                Enter your main topic or keywords for the blog post.
-              </p>
+              <p className="text-xs text-gray-500 mt-2">Enter your main topic or keywords for the blog post.</p>
             </div>
 
             {/* Category Selection */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
-                Blog Category
-              </label>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Blog Category</label>
               <div className="flex flex-wrap gap-2">
                 {blogCategories.map((category) => (
                   <button
@@ -165,9 +151,7 @@ function BlogTitle() {
 
             {/* Number of Titles */}
             <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
-                Number of Titles
-              </label>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Number of Titles</label>
               <div className="flex gap-3">
                 {numberOfTitlesOptions.map((num) => (
                   <button
@@ -185,9 +169,7 @@ function BlogTitle() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Choose how many title suggestions you want to generate.
-              </p>
+              <p className="text-xs text-gray-500 mt-2">Choose how many title suggestions you want to generate.</p>
             </div>
 
             {/* Generate Button */}
@@ -216,9 +198,7 @@ function BlogTitle() {
             <div className="flex items-start gap-3">
               <TrendingUp className="w-5 h-5 text-pink-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">
-                  Tips for Better Titles
-                </h4>
+                <h4 className="font-semibold text-gray-900 mb-2">Tips for Better Titles</h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Use numbers and lists (e.g., "10 Ways...")</li>
                   <li>• Include power words (Ultimate, Essential, Proven)</li>
@@ -239,9 +219,7 @@ function BlogTitle() {
                 <Heading className="w-5 h-5 text-pink-600" />
                 Generated Titles
                 {generatedTitles.length > 0 && (
-                  <span className="text-sm font-normal text-gray-500">
-                    ({generatedTitles.length})
-                  </span>
+                  <span className="text-sm font-normal text-gray-500">({generatedTitles.length})</span>
                 )}
               </h3>
               {generatedTitles.length > 0 && !isLoading && (
@@ -258,39 +236,28 @@ function BlogTitle() {
             {/* Results Content */}
             <div className="p-6 min-h-[500px] max-h-[700px] overflow-y-auto">
               {isLoading ? (
-                // Loading State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <Loader2 className="w-12 h-12 text-pink-600 animate-spin mb-4" />
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    Generating Titles
-                  </h4>
-                  <p className="text-sm text-gray-600 max-w-sm">
-                    Creating {numberOfTitles} catchy blog titles for you...
-                  </p>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Generating Titles</h4>
+                  <p className="text-sm text-gray-600 max-w-sm">{`Creating ${numberOfTitles} catchy blog titles for you...`}</p>
                 </div>
               ) : generatedTitles.length > 0 ? (
-                // Generated Titles List
                 <div className="space-y-3">
                   {generatedTitles.map((item, index) => (
                     <div
                       key={item.id}
                       className="group relative bg-gray-50 hover:bg-pink-50 border border-gray-200 hover:border-pink-300 rounded-lg p-4 transition-all"
                     >
-                      {/* Title Number Badge */}
                       <div className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 text-white text-xs font-bold flex items-center justify-center shadow-md">
                         {index + 1}
                       </div>
 
                       <div className="flex items-start gap-3">
                         <div className="flex-1 min-w-0 pt-1">
-                          <p className="text-gray-900 font-medium leading-relaxed">
-                            {item.title}
-                          </p>
+                          <p className="text-gray-900 font-medium leading-relaxed">{item.title}</p>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          {/* Favorite Button */}
                           <button
                             onClick={() => toggleFavorite(item.id)}
                             className={`p-2 rounded-lg transition-all ${
@@ -301,13 +268,10 @@ function BlogTitle() {
                             title="Favorite"
                           >
                             <Heart
-                              className={`w-4 h-4 ${
-                                favorites.has(item.id) ? "fill-current" : ""
-                              }`}
+                              className={`w-4 h-4 ${favorites.has(item.id) ? "fill-current" : ""}`}
                             />
                           </button>
 
-                          {/* Copy Button */}
                           <button
                             onClick={() => handleCopy(item.title, index)}
                             className="p-2 rounded-lg hover:bg-gray-200 transition-colors"
@@ -325,17 +289,13 @@ function BlogTitle() {
                   ))}
                 </div>
               ) : (
-                // Empty State
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
                   <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                     <Heading className="w-10 h-10 text-gray-400" />
                   </div>
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                    No Titles Generated Yet
-                  </h4>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">No Titles Generated Yet</h4>
                   <p className="text-sm text-gray-600 max-w-sm">
-                    Enter a topic, select a category, and click "Generate Blog
-                    Titles" to get started.
+                    Enter a topic, select a category, and click "Generate Blog Titles" to get started.
                   </p>
                 </div>
               )}
@@ -348,8 +308,7 @@ function BlogTitle() {
               <div className="flex items-center gap-2 text-sm text-pink-800">
                 <Heart className="w-4 h-4 fill-current" />
                 <span className="font-medium">
-                  {favorites.size} {favorites.size === 1 ? "title" : "titles"}{" "}
-                  marked as favorite
+                  {favorites.size} {favorites.size === 1 ? "title" : "titles"} marked as favorite
                 </span>
               </div>
             </div>

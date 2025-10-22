@@ -53,24 +53,9 @@ function Sidebar({ className = "", onClose, isMobile = false }) {
           icon: Scissors,
         },
         {
-          path: "/ai/remove-object",
-          name: "Remove Object",
-          icon: Eraser,
-        },
-        {
           path: "/ai/review-resume",
           name: "Review Resume",
           icon: FileCheck,
-        },
-      ],
-    },
-    {
-      section: "Community",
-      items: [
-        {
-          path: "/ai/community",
-          name: "Community",
-          icon: Users,
         },
       ],
     },
@@ -121,24 +106,6 @@ function Sidebar({ className = "", onClose, isMobile = false }) {
             <X className="w-5 h-5 text-gray-600" />
           </button>
         )}
-      </div>
-
-      {/* Premium Badge */}
-      <div className="px-4 pt-4">
-        <div className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 border border-primary/20 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs font-semibold bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Premium Plan
-            </span>
-          </div>
-          <p className="text-xs text-gray-600 mb-3">
-            5 credits remaining
-          </p>
-          <button className="w-full py-1.5 text-xs font-medium text-white bg-primary rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all">
-            Upgrade Now
-          </button>
-        </div>
       </div>
 
       {/* Navigation Menu */}

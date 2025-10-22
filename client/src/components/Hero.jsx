@@ -47,14 +47,6 @@ function Hero() {
             Start creating now
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
-
-          <button
-            onClick={() => {/* Add demo video handler */}}
-            className="group w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 bg-white text-gray-700 rounded-full font-medium text-sm sm:text-base border-2 border-gray-200 transition-all hover:border-primary hover:text-primary hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            <Play className="w-4 h-4 transition-transform group-hover:scale-110" />
-            Watch demo
-          </button>
         </div>
 
         {/* Social Proof - User Group */}

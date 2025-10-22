@@ -230,46 +230,6 @@ export const removeBackground = async (req, res) => {
   }
 };
 
-// @route   POST /api/ai/remove-object
-// @access  Private
-export const removeObject = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please upload an image',
-      });
-    }
-    
-    const imageBase64 = fs.readFileSync(req.file.path, 'base64');
-    const processedImage = `data:${req.file.mimetype};base64,${imageBase64}`;
-
-    await sql`
-      INSERT INTO creations (user_id, type, prompt, output, tool)
-      VALUES (${userId}, 'object-remove', 'Remove object', ${processedImage}, 'Remove Object')
-    `;
-
-    cleanupFile(req.file.path);
-
-    res.status(200).json({
-      success: true,
-      data: {
-        processedImage,
-        message: 'Image processed. In production, this would use AI inpainting.',
-      },
-    });
-  } catch (error) {
-    console.error('Remove object error:', error);
-    if (req.file) cleanupFile(req.file.path);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to remove object',
-    });
-  }
-};
-
 // @route   POST /api/ai/review-resume
 // @access  Private
 export const reviewResume = async (req, res) => {

@@ -4,7 +4,6 @@ import {
   generateBlogTitles,
   generateImages,
   removeBackground,
-  removeObject,
   reviewResume,
 } from '../controllers/aiController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -22,7 +21,6 @@ router.post('/generate-images', generateImages);
 
 // Image processing routes
 router.post('/remove-background', upload.single('image'), removeBackground);
-router.post('/remove-object', upload.single('image'), removeObject);
 
 // Resume review
 router.post('/review-resume', upload.single('resume'), reviewResume);

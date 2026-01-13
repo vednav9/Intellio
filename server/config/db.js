@@ -32,11 +32,9 @@ export const initializeTables = async () => {
     );
     `
 
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-      CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
-      CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
-    `
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)`;
 
     await sql`
       CREATE TABLE IF NOT EXISTS creations (

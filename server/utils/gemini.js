@@ -5,8 +5,9 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 export const generateContent = async (prompt, temperature = 0.7) => {
   try {
     // Use Gemini 2.5 Flash - stable and fast
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash'
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: { temperature },
     });
     
     const result = await model.generateContent(prompt);

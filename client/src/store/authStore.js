@@ -80,10 +80,34 @@ export const useAuthStore = create(
 
       loadUser: async () => {
         const accessToken = tokenManager.getAccessToken();
+        const refreshToken = tokenManager.getRefreshToken();
 
-        if (!accessToken || tokenManager.isTokenExpired(accessToken)) {
+        // No tokens at all — clear state
+        if (!accessToken && !refreshToken) {
           set({ user: null, isAuthenticated: false });
           return;
+        }
+
+        // If access token is expired but we have a refresh token, try to refresh first
+        if (!accessToken || tokenManager.isTokenExpired(accessToken)) {
+          if (!refreshToken) {
+            set({ user: null, isAuthenticated: false });
+            return;
+          }
+          try {
+            const refreshRes = await authApi.refreshToken(refreshToken);
+            if (refreshRes?.data?.accessToken) {
+              tokenManager.setTokens(refreshRes.data.accessToken, refreshToken);
+            } else {
+              tokenManager.clearTokens();
+              set({ user: null, isAuthenticated: false });
+              return;
+            }
+          } catch {
+            tokenManager.clearTokens();
+            set({ user: null, isAuthenticated: false });
+            return;
+          }
         }
 
         try {

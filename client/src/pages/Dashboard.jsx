@@ -2,36 +2,34 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Layers,
-  Zap,
   Sparkles,
   Users,
   TrendingUp,
-  Crown,
-  ArrowRight,
   FileText,
   ImageIcon,
   Scissors,
+  ArrowRight,
   Clock,
 } from "lucide-react";
 import axiosInstance from "../api/axios";
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [creations, setCreations] = useState([]);
   const [stats, setStats] = useState({
     totalCreations: 0,
-    creditsUsed: 0,
-    creditsRemaining: 5,
     toolsUsed: 0,
     communityPosts: 0,
   });
+  const [creations, setCreations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const getDashboardData = async () => {
     try {
       setLoading(true);
-      const statsRes = await axiosInstance.get("/user/stats");
-      const creationsRes = await axiosInstance.get("/user/creations?limit=5");
+      const [statsRes, creationsRes] = await Promise.all([
+        axiosInstance.get("/user/stats"),
+        axiosInstance.get("/user/creations?limit=5"),
+      ]);
       setStats(statsRes.data.data);
       setCreations(creationsRes.data.data.creations);
     } catch (error) {
@@ -69,8 +67,6 @@ function Dashboard() {
     },
   ];
 
-  const recentActivity = creations.slice(0, 5);
-
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -95,20 +91,6 @@ function Dashboard() {
           </p>
           <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
             <Layers className="w-6 h-6 text-blue-600" />
-          </div>
-        </div>
-
-        {/* Credits Used */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between">
-            <p className="text-sm font-medium text-gray-600 mb-1">Credits Used</p>
-            <h2 className="text-3xl font-bold text-gray-900">{stats.creditsUsed}</h2>
-          </div>
-          <p className="text-xs text-orange-600 font-medium mt-2">
-            {stats.creditsRemaining} remaining
-          </p>
-          <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center">
-            <Zap className="w-6 h-6 text-purple-600" />
           </div>
         </div>
 
@@ -139,7 +121,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
-
+      
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
@@ -163,44 +145,43 @@ function Dashboard() {
       </div>
 
       {/* Recent Creations */}
-      <div className="lg:grid lg:grid-cols-3 lg:gap-8">
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Recent Creations</h2>
-            <button
-              onClick={() => navigate("/ai/creations")}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View all
-            </button>
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Recent Creations</h2>
+          <button
+            onClick={() => navigate("/creations")}
+            className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1 font-medium"
+          >
+            View all <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+        {creations.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
+            No creations yet. Try one of the quick actions below!
           </div>
-          <div className="space-y-4">
-            {recentActivity.length === 0 ? (
-              <p className="text-gray-500">No recent activity</p>
-            ) : (
-              recentActivity.map((creation) => (
-                <div
-                  key={creation.id}
-                  className="p-4 bg-white rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-gray-50"
-                  onClick={() => navigate(`/ai/creations/${creation.id}`)}
-                >
-                  <p className="text-sm text-gray-600">{creation.tool}</p>
-                  <p className="font-medium text-gray-900 truncate">{creation.prompt}</p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(creation.created_at).toLocaleString()}
-                  </p>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {creations.map((item) => (
+              <div key={item.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-blue-600" />
                 </div>
-              ))
-            )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 capitalize">{item.tool?.replace(/-/g, " ") || item.type}</p>
+                  <p className="text-xs text-gray-500 truncate">{item.prompt || "—"}</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-400 shrink-0">
+                  <Clock className="w-3 h-3" />
+                  {new Date(item.created_at).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-
-        {/* Activity Timeline Placeholder or Future Feature */}
-        <div className="mt-10 lg:mt-0">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
-          <p className="text-gray-600">Feature coming soon...</p>
-        </div>
+        )}
       </div>
+
+
+
     </div>
   );
 }

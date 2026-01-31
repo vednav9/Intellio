@@ -44,16 +44,18 @@ function GenerateImages() {
     setGeneratedImages([]);
     setProgress(0);
 
-    // Simulate progress bar increment
+    // Simulate progress — FLUX.1-schnell ~10-20s/image
+    // Interval scales so bar reaches ~88% just before expected finish
+    const msPerStep = Math.max(250, numberOfImages * 250);
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 90) {
+        if (prev >= 88) {
           clearInterval(progressInterval);
-          return 90;
+          return 88;
         }
-        return prev + 5;
+        return prev + 1;
       });
-    }, 200);
+    }, msPerStep);
 
     try {
       const response = await axiosInstance.post("/ai/generate-images", {
@@ -292,9 +294,9 @@ function GenerateImages() {
                     Creating Your Images
                   </h4>
                   <p className="text-sm text-gray-600 max-w-sm mb-4">
-                    This may take a few moments. We're crafting{" "}
-                    {numberOfImages} {numberOfImages === 1 ? "image" : "images"}{" "}
-                    in {selectedStyle} style...
+                    Generating {numberOfImages} {numberOfImages === 1 ? "image" : "images"} in{" "}
+                    <span className="font-medium text-purple-600">{selectedStyle}</span> style
+                    using FLUX AI. This takes ~{numberOfImages * 10}–{numberOfImages * 20}s — please don't close this tab.
                   </p>
                   <div className="text-2xl font-bold text-purple-600">{progress}%</div>
                 </div>

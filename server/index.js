@@ -78,7 +78,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// Initialize DB and start server (local dev only)
 const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
@@ -97,4 +97,12 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// On Vercel (serverless), just init tables without starting a listener
+if (process.env.VERCEL) {
+  testConnection().then(() => initializeTables()).catch(console.error);
+} else {
+  startServer();
+}
+
+// Required export for Vercel serverless
+export default app;

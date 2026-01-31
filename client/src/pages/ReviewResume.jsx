@@ -79,6 +79,7 @@ function ReviewResume() {
 
     setIsAnalyzing(true);
     setProgress(0);
+    let progressInterval = null;
 
     try {
       // Prepare form data
@@ -86,16 +87,16 @@ function ReviewResume() {
       formData.append("resume", uploadedFile);
       formData.append("targetRole", targetRole);
 
-      // Simulate progress
-      const progressInterval = setInterval(() => {
+      // Simulate progress — Gemini analysis takes ~10-20s
+      progressInterval = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 90) {
+          if (prev >= 88) {
             clearInterval(progressInterval);
-            return 90;
+            return 88;
           }
-          return prev + 10;
+          return prev + 1;
         });
-      }, 300);
+      }, 160);
 
       // Call actual backend API
       const response = await axiosInstance.post("/ai/review-resume", formData, {
@@ -112,6 +113,7 @@ function ReviewResume() {
         toast.error("Analysis failed");
       }
     } catch (error) {
+      clearInterval(progressInterval);
       toast.error(error.response?.data?.message || "Error analyzing resume");
       console.error("ReviewResume API error:", error);
     } finally {

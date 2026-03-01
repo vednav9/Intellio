@@ -287,7 +287,7 @@ export const reviewResume = async (req, res) => {
 
     // Extract text from the uploaded file
     if (ext === '.pdf') {
-      const { default: pdfParse } = await import('pdf-parse');
+      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
       const dataBuffer = fs.readFileSync(req.file.path);
       const pdfData = await pdfParse(dataBuffer);
       resumeText = pdfData.text;

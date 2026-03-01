@@ -5,7 +5,6 @@ import {
   Loader2,
   Copy,
   Check,
-  Heart,
   RefreshCw,
   Wand2,
   TrendingUp,
@@ -33,7 +32,6 @@ function BlogTitle() {
   const [generatedTitles, setGeneratedTitles] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
-  const [favorites, setFavorites] = useState(new Set());
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -73,18 +71,6 @@ function BlogTitle() {
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
     toast.success("Copied to clipboard!");
-  };
-
-  const toggleFavorite = (id) => {
-    setFavorites((prev) => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(id)) {
-        newFavorites.delete(id);
-      } else {
-        newFavorites.add(id);
-      }
-      return newFavorites;
-    });
   };
 
   const handleRegenerate = () => {
@@ -258,19 +244,6 @@ function BlogTitle() {
                         </div>
 
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          <button
-                            onClick={() => toggleFavorite(item.id)}
-                            className={`p-2 rounded-lg transition-all ${
-                              favorites.has(item.id)
-                                ? "bg-pink-100 text-pink-600"
-                                : "hover:bg-gray-200 text-gray-400 hover:text-pink-500"
-                            }`}
-                            title="Favorite"
-                          >
-                            <Heart
-                              className={`w-4 h-4 ${favorites.has(item.id) ? "fill-current" : ""}`}
-                            />
-                          </button>
 
                           <button
                             onClick={() => handleCopy(item.title, index)}
@@ -301,18 +274,6 @@ function BlogTitle() {
               )}
             </div>
           </div>
-
-          {/* Favorites Summary */}
-          {favorites.size > 0 && (
-            <div className="mt-4 bg-pink-50 border border-pink-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-sm text-pink-800">
-                <Heart className="w-4 h-4 fill-current" />
-                <span className="font-medium">
-                  {favorites.size} {favorites.size === 1 ? "title" : "titles"} marked as favorite
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

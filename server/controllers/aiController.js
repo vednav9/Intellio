@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import mammoth from 'mammoth';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import FormData from 'form-data';
 
 // @route   POST /api/ai/write-article
@@ -289,8 +289,7 @@ export const reviewResume = async (req, res) => {
     // Extract text from the uploaded file
     if (ext === '.pdf') {
       const dataBuffer = fs.readFileSync(req.file.path);
-      const parser = new PDFParse({ data: dataBuffer });
-      const pdfData = await parser.getText();
+      const pdfData = await pdfParse(dataBuffer);
       resumeText = pdfData.text;
     } else if (ext === '.docx') {
       const result = await mammoth.extractRawText({ path: req.file.path });

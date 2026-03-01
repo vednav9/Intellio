@@ -1,4 +1,4 @@
-# 🚀 Intellio
+# Intellio
 
 > **Intellio** is a modern, full-stack web application built with React (Vite) on the frontend and Node.js/Express on the backend.  
 > It’s designed to deliver a scalable, user-friendly experience — integrating authentication, API interactions, and real-time capabilities.
